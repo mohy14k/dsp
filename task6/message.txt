@@ -1,0 +1,64 @@
+void* malloc(uint32 size)
+{
+	//==============================================================
+	//DON'T CHANGE THIS CODE========================================
+	if (size == 0) return NULL ;
+	//==============================================================
+	//TODO: [PROJECT'24.MS2 - #12] [3] USER HEAP [USER SIDE] - malloc()
+	// Write your code here, remove the panic and write your code
+	//panic("malloc() is not implemented yet...!!");
+	if(size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		return alloc_block_FF(size);
+	else
+	{//page alloctor
+		//cprintf("ff: %d\n",sys_isUHeapPlacementStrategyFIRSTFIT());
+		uint32 start = myEnv->hard_limit_user + PAGE_SIZE;
+		cprintf("size_before_round: %u\n",size);
+		size = ROUNDUP(size,PAGE_SIZE);
+		cprintf("size_after_round: %u\n",size);
+		//search
+		uint32 va_counter = start;
+		uint32 va_start = 0;
+
+		uint32 size_counter = size;//8000   4000 - 0
+		while(va_counter < USER_HEAP_MAX)
+		{
+			//uint32 * ptr_table = NULL;
+			int perms = sys_get_page_permissions(va_counter);
+			//cprintf("perms & perm_mark :%u \n",perms & PERM_AVAILABLE_mark);
+			//cprintf("va_counter & perm_mark :%u \n",va_counter & PERM_AVAILABLE_mark);
+
+			if(perms & PERM_AVAILABLE_mark )
+			{
+				//cprintf("if1\n");
+				size_counter = size;
+			}
+			else
+			{
+				//printf("if2\n");
+				if(size_counter == size)
+				{
+					va_start = va_counter;
+				}
+				size_counter -= PAGE_SIZE;
+			}
+
+			va_counter += PAGE_SIZE;
+			if(size_counter == 0)
+			{
+				break;
+			}
+		}
+
+		if(va_counter >= USER_HEAP_MAX)
+			return NULL;
+
+		sys_allocate_user_mem(va_start,size);
+		cprintf("va_start: %u\n",va_start);
+		return(void*) (va_start);
+	}
+	return NULL;
+	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and	sys_isUHeapPlacementStrategyBESTFIT()
+	//to check the current strategy
+
+}
